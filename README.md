@@ -1,6 +1,6 @@
 # NHANES Diabetes Risk Prediction
 
-A diabetes classifier built on real CDC NHANES data, structured to mirror the classic Pima Indians Diabetes schema — but instead of using that static, pre-cleaned CSV, this project pulls, cleans, and labels current NHANES data end-to-end.
+A diabetes prediction pipeline built from raw CDC health data, handling everything from download to cleaning to labeling to model training with no pre-cleaned dataset involved.
 
 ## Pipeline
 
