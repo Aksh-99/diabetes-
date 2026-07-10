@@ -1,27 +1,3 @@
-"""
-NHANES Universal Downloader
-----------------------------
-Instead of hardcoding guessed URLs (which break every cycle, since each
-cycle uses a different folder and filename convention), this script reads
-the REAL file listing directly off the CDC's own data page for whichever
-Component + Cycle you ask for, then downloads exactly those files.
-
-Usage:
-    pip install pandas requests beautifulsoup4 lxml
-
-    python nhanes_downloader.py --component Laboratory --cycle 2021-2023
-    python nhanes_downloader.py --component Demographics --cycle 2021-2023
-    python nhanes_downloader.py --component Questionnaire --cycle 2021-2023 --filter DIQ
-    python nhanes_downloader.py --component Examination --cycle 2021-2023 --filter BMX
-
---filter is optional: only download files whose name contains that substring
-(case-insensitive). Without it, ALL files for that component+cycle download,
-which for Dietary/Questionnaire can be dozens of files.
-
-Output:
-    nhanes_raw/<CYCLE>/<COMPONENT>/*.xpt   (raw downloaded files)
-"""
-
 import argparse
 import os
 import re

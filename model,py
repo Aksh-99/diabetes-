@@ -1,0 +1,89 @@
+#Import packages
+import pandas as pd
+import numpy as np
+import seaborn
+import matplotlib as plt
+import pickle
+from sklearn.preprocessing import StandardScaler #standardization
+from sklearn.model_selection import train_test_split #testtrain
+from sklearn.impute import SimpleImputer #missing values
+from sklearn import svm
+from sklearn.metrics import accuracy_score
+import requests
+
+#Load dataset
+df=pd.read_csv("/workspaces/diabetes-/nhanes_Clean_style.csv")
+df
+
+df.shape
+
+df.head()
+
+print(df.isnull().sum().sum())
+
+df.describe()
+
+df.describe()
+
+df['Outcome'].value_counts()
+
+df.groupby('Outcome').mean()
+
+X = df.drop(columns='Outcome')
+Y = df['Outcome']
+
+print(X)
+
+print(Y)
+
+#Handle missing values
+X['Pregnancies'] = X['Pregnancies'].fillna(0)
+
+median_cols = ['Glucose', 'BloodPressure', 'Insulin', 'BMI']
+imputer = SimpleImputer(strategy='median')
+X[median_cols] = imputer.fit_transform(X[median_cols])
+
+#Scale the full feature set
+scalar=StandardScaler()
+scalar.fit(X)
+
+std_data=scalar.transform(X)
+print(std_data)
+
+#Split the SCALED data so training and inference stay consistent
+X_train, X_test, Y_train, Y_test = train_test_split(std_data, Y, test_size=0.2, stratify=Y, random_state=2)
+
+classifier = svm.SVC(kernel='linear')
+
+classifier.fit(X_train, Y_train)
+
+# accuracy score on the training data
+X_train_prediction = classifier.predict(X_train)
+training_data_accuracy = accuracy_score(X_train_prediction, Y_train)
+print('Accuracy score of the training data:', training_data_accuracy)
+
+# accuracy score on the test data
+X_test_prediction = classifier.predict(X_test)
+test_data_accuracy = accuracy_score(X_test_prediction, Y_test)
+print('Accuracy score of the test data:', test_data_accuracy)
+
+input_data = (1.0, 156.0, 109.000000, 16.33, 29.7, 44.0)
+print("Using input:", input_data)
+
+# changing the input data to numpy array
+input_data_as_numpy_array = np.asarray(input_data)
+print("input_data_as_numpy_array:", input_data_as_numpy_array)
+
+# reshape the array as we are predicting for one instance
+input_data_reshaped = input_data_as_numpy_array.reshape(1,-1)
+print("input_data_reshaped:", input_data_reshaped)
+
+# standardize the input data (wrapped in a DataFrame to match feature names and silence the warning)
+input_df = pd.DataFrame(input_data_reshaped, columns=X.columns)
+std_data = scalar.transform(input_df)
+print(std_data)
+
+prediction = classifier.predict(std_data)
+print(prediction)
+
+print(X.columns.tolist())

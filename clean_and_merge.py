@@ -26,38 +26,33 @@ def load(name, path):
 def main():
     dfs = {name: load(name, path) for name, path in PATHS.items()}
 
-    # ---- Demographics ----
+    # Demographics
     demo = dfs["DEMO"][["SEQN", "RIDAGEYR", "RIAGENDR"]].rename(
         columns={"RIDAGEYR": "Age", "RIAGENDR": "sex"}
     )
 
-    # ---- Glucose ----
+    # Glucose
     glu = dfs["GLU"][["SEQN", "LBXGLU"]].rename(columns={"LBXGLU": "Glucose"})
 
-    # ---- HbA1c (needed for Outcome label, not in final Clean columns itself) ----
+    # HbA1c (used for Outcome label only, not a model feature)
     ghb = dfs["GHB"][["SEQN", "LBXGH"]].rename(columns={"LBXGH": "hba1c"})
 
-    # ---- Insulin ----
+    # Insulin
     ins = dfs["INS"][["SEQN", "LBXIN"]].rename(columns={"LBXIN": "Insulin"})
 
-    # ---- BMI ----
+    # BMI
     bmx = dfs["BMX"][["SEQN", "BMXBMI"]].rename(columns={"BMXBMI": "BMI"})
 
-    # ---- Blood Pressure: average available systolic readings (verified columns
-    #      from actual file: BPXOSY1, BPXOSY2, BPXOSY3) ----
+    # Blood Pressure: average available systolic readings (BPXOSY1/2/3).
     bpxo = dfs["BPXO"][["SEQN", "BPXOSY1", "BPXOSY2", "BPXOSY3"]].copy()
     bpxo["BloodPressure"] = bpxo[["BPXOSY1", "BPXOSY2", "BPXOSY3"]].mean(axis=1, skipna=True)
     bpxo = bpxo[["SEQN", "BloodPressure"]]
 
-    # ---- Diabetes self-report (for Outcome label) ----
+    # Diabetes self-report (for Outcome label)
     diq = dfs["DIQ"][["SEQN", "DIQ010"]].rename(columns={"DIQ010": "self_report_raw"})
     diq["self_report_raw"] = diq["self_report_raw"].replace({7: None, 9: None})
 
-    # ---- Pregnancies: RHQ131 "Ever been pregnant?" (1=Yes, 2=No) used as a
-    #      WEAKER PROXY for Clean's original lifetime pregnancy COUNT, since the
-    #      count question (RHQ160) was dropped from NHANES in this cycle.
-    #      RHQ is females-only; males/children will be NaN here, not 0 - see
-    #      the note printed at the end for how this is handled downstream. ----
+    # Pregnancies: RHQ131 "Ever been pregnant?" (1=Yes, 2=No) 
     if "RHQ131" in dfs["RHQ"].columns:
         rhq = dfs["RHQ"][["SEQN", "RHQ131"]].rename(columns={"RHQ131": "pregnancies_raw"})
         rhq["pregnancies_raw"] = rhq["pregnancies_raw"].replace({7: None, 9: None})
@@ -68,7 +63,7 @@ def main():
         rhq = dfs["RHQ"][["SEQN"]].copy()
         rhq["Pregnancies"] = None
 
-    # ---- Merge everything on SEQN ----
+    # Merge everything on SEQN
     df = demo.merge(glu, on="SEQN", how="left") \
               .merge(ghb, on="SEQN", how="left") \
               .merge(ins, on="SEQN", how="left") \
@@ -79,7 +74,12 @@ def main():
 
     print(f"\n[merged] {df.shape[0]} rows, {df.shape[1]} cols")
 
-    # ---- Range sanity checks ----
+    # Adult-only filter
+    before_age = len(df)
+    df = df[df["Age"] >= 18].copy()
+    print(f"[filter] Dropped {before_age - len(df)} rows for Age < 18")
+
+    # Range sanity checks
     checks = {
         "Glucose": (30, 700), "BMI": (10, 90), "Insulin": (0, 900),
         "BloodPressure": (40, 250), "Age": (0, 100),
@@ -90,26 +90,24 @@ def main():
             print(f"  [clip] {col}: nulled {bad.sum()} out-of-range value(s)")
         df.loc[bad, col] = None
 
-    # ---- Outcome label (ADA criteria) ----
+    # Outcome label (self-report + HbA1c only) 
     def label_row(row):
         if row["self_report_raw"] == 1:
             return 1
         if pd.notna(row["hba1c"]) and row["hba1c"] >= 6.5:
             return 1
-        if pd.notna(row["Glucose"]) and row["Glucose"] >= 126:
-            return 1
-        if pd.isna(row["self_report_raw"]) and pd.isna(row["hba1c"]) and pd.isna(row["Glucose"]):
+        if pd.isna(row["self_report_raw"]) and pd.isna(row["hba1c"]):
             return None
         return 0
 
     df["Outcome"] = df.apply(label_row, axis=1)
 
-    # ---- Drop rows with no diagnostic signal at all ----
+    # Drop rows with no diagnostic signal at all
     before = len(df)
     df = df.dropna(subset=["Outcome"]).copy()
     print(f"[filter] Dropped {before - len(df)} rows with no diagnostic signal")
 
-    # ---- Final column order matching Clean style ----
+    # Final column order matching Clean style
     final_cols = ["Pregnancies", "Glucose", "BloodPressure", "Insulin", "BMI", "Age", "Outcome"]
     out = df[final_cols].copy()
 
