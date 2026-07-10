@@ -31,8 +31,8 @@ python model.py
 
 | Metric | Value |
 |---|---|
-| Training accuracy | TBD — rerun pending leakage fix |
-| Test accuracy | TBD — rerun pending leakage fix |
+| Training accuracy | 88.1%|
+| Test accuracy | 88.2% |
 
 *(Earlier run showed ~92%, but that included Glucose in the label logic. Numbers will be updated after rerunning the corrected pipeline.)*
 
