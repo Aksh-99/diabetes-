@@ -50,6 +50,3 @@ python model.py
 - Add a missingness indicator for Insulin
 - Deploy via FastAPI; add SHAP for interpretability
 
-## Tech stack
-
-`requests`, `BeautifulSoup` · `pandas`, `numpy` · `scikit-learn` (SVC, StandardScaler, SimpleImputer) · CDC NHANES 2021-2023 (public domain)
